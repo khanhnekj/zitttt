@@ -630,6 +630,7 @@ function showApp(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='';
   applyRole();startPolling();loadAnnouncements();
+  setTimeout(()=>{if(typeof applyMobileUI==='function')applyMobileUI();},100);
 }
 function applyRole(){
   if(!ME)return;
@@ -801,6 +802,7 @@ function selectAccTab(id,load=true){
   document.querySelectorAll('.acc-tab').forEach(t=>t.classList.toggle('active',t.getAttribute('onclick')?.includes(`'${id}'`)));
   document.getElementById('chat-main').innerHTML='<div class="chat-placeholder"><div class="ci">💬</div><p style="font-size:.82rem;font-weight:600">Chọn cuộc trò chuyện</p></div>';
   if(load)loadThreads(id);
+  if(typeof isMobile==='function'&&isMobile()){const ls=document.getElementById('lc-sidebar-el');if(ls)ls.classList.remove('mobile-show');const btn=document.getElementById('thread-list-btn');if(btn)btn.textContent='📋 Danh sách';}
 }
 
 // ===== LIVE CHAT =====
@@ -1135,40 +1137,6 @@ window.addEventListener('resize',()=>{
     applyMobileUI();
   }
 });
-
-// Patch showApp để gọi applyMobileUI
-const _origShowApp=showApp;
-const showApp=()=>{
-  _origShowApp();
-  setTimeout(applyMobileUI,100);
-};
-
-// Patch selectAccTab để cập nhật mobile header
-const _origSelectAccTab=selectAccTab;
-const selectAccTab=(id,load=true)=>{
-  _origSelectAccTab(id,load);
-  if(isMobile()){
-    const ls=document.getElementById('lc-sidebar-el');
-    if(ls)ls.classList.remove('mobile-show');
-    const btn=document.getElementById('thread-list-btn');
-    if(btn)btn.textContent='📋 Danh sách';
-  }
-};
-
-// Patch openThread để đóng thread list trên mobile
-const _origOpenThread=openThread;
-const openThread=async(id)=>{
-  await _origOpenThread(id);
-  if(isMobile()){
-    const ls=document.getElementById('lc-sidebar-el');
-    if(ls)ls.classList.remove('mobile-show');
-    const btn=document.getElementById('thread-list-btn');
-    if(btn)btn.textContent='📋 Danh sách';
-    // Cập nhật tên acc
-    const acc=allAccs.find(a=>a.id===currentAccId);
-    updateMobileAccName(acc?.name||'');
-  }
-};
 
 // ===== INIT =====
 checkAuth();
