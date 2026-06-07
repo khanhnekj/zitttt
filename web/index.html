@@ -608,20 +608,20 @@ async function doLogin(){
   if(!user||!pass){err.textContent='Vui lòng nhập đủ thông tin.';return}
   btn.disabled=true;btn.textContent='Đang đăng nhập...';err.textContent='';
   try{
-    const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,password:pass})}).then(r=>r.json());
+    const r=await fetch('/api/auth/login',{credentials:'include',method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,password:pass})}).then(r=>r.json());
     if(r.ok){ME=r;showApp()}else err.textContent=r.msg||'Sai thông tin.';
   }catch(e){err.textContent='Lỗi kết nối server.'}
   btn.disabled=false;btn.textContent='Đăng Nhập';
 }
 async function doLogout(){
-  await fetch('/api/auth/logout',{method:'POST'});
+  await fetch('/api/auth/logout',{credentials:'include',method:'POST'});
   ME=null;currentThread=null;currentAccId=null;allLogs=[];
   if(pollTimer)clearInterval(pollTimer);
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
 }
 async function checkAuth(){
-  try{const r=await fetch('/api/auth/me').then(r=>r.json());if(r.ok){ME=r;showApp()}}catch(e){}
+  try{const r=await fetch('/api/auth/me',{credentials:'include'}).then(r=>r.json());if(r.ok){ME=r;showApp()}}catch(e){}
 }
 
 // ===== APP =====
@@ -670,8 +670,8 @@ async function poll(){
   if(!ME)return;
   try{
     const[s,l]=await Promise.all([
-      fetch('/api/status').then(r=>r.json()),
-      hasRole('ndh')?fetch('/api/logs?n=300').then(r=>r.json()):Promise.resolve({logs:[]}),
+      fetch('/api/status',{credentials:'include'}).then(r=>r.json()),
+      hasRole('ndh')?fetch('/api/logs?n=300',{credentials:'include'}).then(r=>r.json()):Promise.resolve({logs:[]}),
     ]);
     updateStatus(s);allLogs=l.logs||[];renderConsole();renderHomeLog();
     if(currentThread&&currentAccId)pollChat(currentAccId,currentThread);
@@ -728,7 +728,7 @@ function toggleAS(){autoScroll=!autoScroll;document.getElementById('as-btn').tex
 
 // ===== MY BOTS =====
 async function loadMyBots(){
-  const d=await fetch('/api/accounts').then(r=>r.json());
+  const d=await fetch('/api/accounts',{credentials:'include'}).then(r=>r.json());
   const el=document.getElementById('my-bot-list');
   const accs=d.accounts||[];
   if(!accs.length){el.innerHTML='<div style="color:var(--muted2);font-size:.78rem;padding:8px 0">Chưa có bot nào. Nhấn "+ Thêm Bot" để bắt đầu.</div>';return}
@@ -758,7 +758,7 @@ async function createAcc(){
   const cookies=document.getElementById('ca-cookies').value.trim();
   const prefix=document.getElementById('ca-prefix').value.trim()||'/';
   if(!name||!cookies){toast('Thiếu tên hoặc cookie','err');return}
-  const r=await fetch('/api/accounts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,cookies,prefix})}).then(r=>r.json());
+  const r=await fetch('/api/accounts',{credentials:'include',method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,cookies,prefix})}).then(r=>r.json());
   toast(r.msg,r.ok?'ok':'err');
   if(r.ok){hideModal('modal-create-acc');document.getElementById('ca-name').value='';document.getElementById('ca-cookies').value='';loadMyBots();loadAccTabs()}
 }
@@ -770,20 +770,20 @@ async function updateAcc(){
   const id=document.getElementById('ea-id').value;
   const body={name:document.getElementById('ea-name').value.trim(),prefix:document.getElementById('ea-prefix').value.trim()||'/'};
   const cookies=document.getElementById('ea-cookies').value.trim();if(cookies)body.cookies=cookies;
-  const r=await fetch(`/api/accounts/${id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
+  const r=await fetch(`/api/accounts/${id}`,{credentials:'include',method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
   toast(r.msg,r.ok?'ok':'err');if(r.ok){hideModal('modal-edit-acc');loadMyBots();loadAccTabs()}
 }
 async function deleteAcc(id,name){
   if(!confirm(`Xóa bot "${name}"?`))return;
-  const r=await fetch(`/api/accounts/${id}`,{method:'DELETE'}).then(r=>r.json());
+  const r=await fetch(`/api/accounts/${id}`,{credentials:'include',method:'DELETE'}).then(r=>r.json());
   toast(r.msg,r.ok?'ok':'err');if(r.ok){loadMyBots();loadAccTabs()}
 }
-async function startAcc(id){const r=await fetch(`/api/accounts/${id}/start`,{method:'POST'}).then(r=>r.json());toast(r.msg,r.ok?'ok':'err')}
-async function stopAcc(id){const r=await fetch(`/api/accounts/${id}/stop`,{method:'POST'}).then(r=>r.json());toast(r.msg,r.ok?'ok':'err')}
+async function startAcc(id){const r=await fetch(`/api/accounts/${id}/start`,{credentials:'include',method:'POST'}).then(r=>r.json());toast(r.msg,r.ok?'ok':'err')}
+async function stopAcc(id){const r=await fetch(`/api/accounts/${id}/stop`,{credentials:'include',method:'POST'}).then(r=>r.json());toast(r.msg,r.ok?'ok':'err')}
 
 // ===== ACC TABS =====
 async function loadAccTabs(){
-  const d=await fetch('/api/accounts').then(r=>r.json());
+  const d=await fetch('/api/accounts',{credentials:'include'}).then(r=>r.json());
   const bar=document.getElementById('acc-tabs-bar');
   const accs=d.accounts||[];
   if(!accs.length){bar.innerHTML='<div style="font-size:.75rem;color:var(--muted2)">Chưa có bot. Vào <b>Bot Của Tôi</b> để thêm.</div>';return}
@@ -813,7 +813,7 @@ function filterThreads(q){
 }
 async function loadThreads(accId){
   if(!accId)return;
-  const d=await fetch(`/api/accounts/${accId}/threads`).then(r=>r.json());
+  const d=await fetch(`/api/accounts/${accId}/threads`,{credentials:'include'}).then(r=>r.json());
   allThreads=d.threads||[];
   const on=allThreads.filter(t=>(Date.now()-t.last_ts)<120000).length;
   const el=document.getElementById('lc-online-count');if(el)el.textContent=on+' online';
@@ -852,7 +852,7 @@ async function openThread(id){
   const bg=avC(id),isOn=t?(Date.now()-t.last_ts)<120000:false;
   const accId=currentAccId;
   // Kiểm tra quyền gửi: owner của acc hoặc ndh+
-  const accsD=await fetch('/api/accounts').then(r=>r.json());
+  const accsD=await fetch('/api/accounts',{credentials:'include'}).then(r=>r.json());
   const acc=accsD.accounts?.find(a=>a.id===accId);
   const canSend=acc?.owner===ME?.username||hasRole('ndh');
   document.getElementById('chat-main').innerHTML=`
@@ -896,7 +896,7 @@ function insertCmd(id,cmd){const inp=document.getElementById('chat-inp-'+id);if(
 
 async function pollChat(accId,id){
   const box=document.getElementById('chat-msgs-'+id);if(!box)return;
-  const d=await fetch(`/api/accounts/${accId}/threads/${id}/messages`).then(r=>r.json()).catch(()=>({messages:[]}));
+  const d=await fetch(`/api/accounts/${accId}/threads/${id}/messages`,{credentials:'include'}).then(r=>r.json()).catch(()=>({messages:[]}));
   const msgs=d.messages||[];
   const atBot=box.scrollHeight-box.clientHeight<=box.scrollTop+60;
   if(!msgs.length){box.innerHTML='<div style="text-align:center;color:var(--muted2);font-size:.73rem;padding:24px;display:flex;flex-direction:column;gap:6px"><div style="font-size:1.5rem">💬</div>Chưa có tin nhắn</div>';return}
@@ -922,21 +922,21 @@ async function sendMsg(aId,id){
   const btn=document.getElementById('sbtn-'+id);
   inp.value='';inp.style.height='auto';inp.classList.remove('is-cmd');
   if(btn)btn.disabled=true;
-  const r=await fetch(`/api/accounts/${aId}/threads/${id}/send`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content})}).then(r=>r.json()).catch(()=>({ok:false,msg:'Lỗi mạng'}));
+  const r=await fetch(`/api/accounts/${aId}/threads/${id}/send`,{credentials:'include',method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content})}).then(r=>r.json()).catch(()=>({ok:false,msg:'Lỗi mạng'}));
   if(btn)btn.disabled=false;
   if(!r.ok)toast(r.msg,'err');
   else{await pollChat(aId,id);loadThreads(aId)}
 }
 async function renameThread(aId,id){
   const name=prompt('Đổi tên:');if(!name)return;
-  await fetch(`/api/accounts/${aId}/threads/${id}/name`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+  await fetch(`/api/accounts/${aId}/threads/${id}/name`,{credentials:'include',method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
   const t=allThreads.find(x=>x.id===id);if(t)t.name=name;
   renderThreadList(allThreads);const cn=document.querySelector('.ch-name');if(cn)cn.textContent=name;toast('Đã đổi tên!');
 }
 
 // ===== COMMANDS =====
 async function loadCommands(){
-  const d=await fetch('/api/commands').then(r=>r.json());
+  const d=await fetch('/api/commands',{credentials:'include'}).then(r=>r.json());
   const cmds=d.commands||[],role=d.role||'member';
   document.getElementById('cmd-grid').innerHTML=cmds.map(c=>{
     const locked=!c.role_allowed,gOff=c.globally_off;
@@ -955,19 +955,19 @@ async function loadCommands(){
   }).join('');
 }
 async function globalToggleCmd(name){
-  const r=await fetch(`/api/commands/${name}/global-toggle`,{method:'POST'}).then(r=>r.json());
+  const r=await fetch(`/api/commands/${name}/global-toggle`,{credentials:'include',method:'POST'}).then(r=>r.json());
   if(r.ok){toast(r.msg);loadCommands()}
 }
 
 // ===== MODULES =====
 async function loadModules(){
-  const d=await fetch('/api/modules').then(r=>r.json());
+  const d=await fetch('/api/modules',{credentials:'include'}).then(r=>r.json());
   const list=document.getElementById('file-items');
   if(!d.files?.length){list.innerHTML='<div style="padding:14px;font-size:.73rem;color:var(--muted2)">Chưa có module.</div>';return}
   list.innerHTML=d.files.map(f=>`<div class="file-item ${currentModule===f.name?'active':''}" onclick="openModule('${f.name}')"><span class="fi-name">${f.filename}</span><span class="fi-size">${(f.size/1024).toFixed(1)}kb</span></div>`).join('');
 }
 async function openModule(name){
-  currentModule=name;const d=await fetch(`/api/modules/${name}`).then(r=>r.json());
+  currentModule=name;const d=await fetch(`/api/modules/${name}`,{credentials:'include'}).then(r=>r.json());
   if(!d.ok){toast(d.msg,'err');return}
   document.getElementById('ed-fname').textContent=name+'.py';
   document.getElementById('ed-actions').style.display='flex';
@@ -976,12 +976,12 @@ async function openModule(name){
 }
 async function saveModule(){
   if(!currentModule)return;
-  const r=await fetch(`/api/modules/${currentModule}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:document.getElementById('code-area').value})}).then(r=>r.json());
+  const r=await fetch(`/api/modules/${currentModule}`,{credentials:'include',method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:document.getElementById('code-area').value})}).then(r=>r.json());
   toast(r.msg,r.ok?'ok':'err');if(r.ok)loadModules();
 }
 async function deleteModule(){
   if(!currentModule||!confirm(`Xóa ${currentModule}.py?`))return;
-  const r=await fetch(`/api/modules/${currentModule}`,{method:'DELETE'}).then(r=>r.json());
+  const r=await fetch(`/api/modules/${currentModule}`,{credentials:'include',method:'DELETE'}).then(r=>r.json());
   toast(r.msg,r.ok?'ok':'err');
   if(r.ok){currentModule=null;document.getElementById('ed-fname').textContent='Chọn file';document.getElementById('ed-actions').style.display='none';document.getElementById('ed-ph').style.display='flex';document.getElementById('code-area').style.display='none';loadModules()}
 }
@@ -989,13 +989,13 @@ async function createModule(){
   const name=document.getElementById('new-mod-name').value.trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
   if(!name){toast('Tên không hợp lệ','err');return}
   const tpl=`def handle(bot, snap: dict, arg: str) -> None:\n    """Lệnh /${name}"""\n    bot._reply(snap, "✅ Lệnh /${name} hoạt động!")\n`;
-  const r=await fetch(`/api/modules/${name}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:tpl})}).then(r=>r.json());
+  const r=await fetch(`/api/modules/${name}`,{credentials:'include',method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:tpl})}).then(r=>r.json());
   hideModal('modal-new-module');toast(r.msg,r.ok?'ok':'err');if(r.ok){loadModules();setTimeout(()=>openModule(name),300)}
 }
 
 // ===== ANNOUNCE =====
 async function loadAnnouncements(){
-  const d=await fetch('/api/announcements').then(r=>r.json());
+  const d=await fetch('/api/announcements',{credentials:'include'}).then(r=>r.json());
   const compose=document.getElementById('ann-compose');if(compose)compose.style.display=hasRole('admin')?'':'none';
   const list=document.getElementById('ann-list'),anns=d.announcements||[];
   if(!anns.length){list.innerHTML='<div class="ann-empty">Chưa có thông báo.</div>';return}
@@ -1004,18 +1004,18 @@ async function loadAnnouncements(){
 async function postAnnounce(){
   const content=document.getElementById('ann-content').value.trim();
   if(!content){toast('Nội dung trống','warn');return}
-  const r=await fetch('/api/announcements',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content})}).then(r=>r.json());
+  const r=await fetch('/api/announcements',{credentials:'include',method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content})}).then(r=>r.json());
   toast(r.msg,r.ok?'ok':'err');if(r.ok){document.getElementById('ann-content').value='';loadAnnouncements()}
 }
-async function deleteAnn(id){if(!confirm('Xóa?'))return;await fetch(`/api/announcements/${id}`,{method:'DELETE'});loadAnnouncements();toast('Đã xóa')}
+async function deleteAnn(id){if(!confirm('Xóa?'))return;await fetch(`/api/announcements/${id}`,{credentials:'include',method:'DELETE'});loadAnnouncements();toast('Đã xóa')}
 
 // ===== USERS =====
 async function loadUsers(){
-  const d=await fetch('/api/users').then(r=>r.json());
+  const d=await fetch('/api/users',{credentials:'include'}).then(r=>r.json());
   document.getElementById('user-tbody').innerHTML=d.users.map(u=>`<tr><td><strong>${esc(u.username)}</strong></td><td><span style="font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--muted2)">${esc(u.uid)||'—'}</span></td><td><span class="rb rb-${u.role}">${ROLE_LABEL[u.role]||u.role}</span></td><td style="color:var(--muted2);font-size:.73rem">${esc(u.created_at)||'—'}</td><td><div style="display:flex;gap:5px"><button class="btn gho sm" onclick="showEditUser('${u.username}','${u.role}','${u.uid||''}')">✏️</button><button class="btn dang sm" onclick="deleteUser('${u.username}')">🗑</button></div></td></tr>`).join('');
 }
 async function createUser(){
-  const r=await fetch('/api/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('cu-username').value.trim(),password:document.getElementById('cu-password').value,uid:document.getElementById('cu-uid').value.trim(),role:document.getElementById('cu-role').value})}).then(r=>r.json());
+  const r=await fetch('/api/users',{credentials:'include',method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('cu-username').value.trim(),password:document.getElementById('cu-password').value,uid:document.getElementById('cu-uid').value.trim(),role:document.getElementById('cu-role').value})}).then(r=>r.json());
   toast(r.msg,r.ok?'ok':'err');if(r.ok){hideModal('modal-create-user');loadUsers()}
 }
 function showEditUser(u,r,uid){document.getElementById('eu-username').value=u;document.getElementById('eu-role').value=r;document.getElementById('eu-uid').value=uid;document.getElementById('eu-pw').value='';showModal('modal-edit-user')}
@@ -1023,18 +1023,18 @@ async function updateUser(){
   const u=document.getElementById('eu-username').value;
   const body={role:document.getElementById('eu-role').value,uid:document.getElementById('eu-uid').value.trim()};
   const pw=document.getElementById('eu-pw').value;if(pw)body.password=pw;
-  const r=await fetch(`/api/users/${u}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
+  const r=await fetch(`/api/users/${u}`,{credentials:'include',method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json());
   toast(r.msg,r.ok?'ok':'err');if(r.ok){hideModal('modal-edit-user');loadUsers()}
 }
-async function deleteUser(u){if(!confirm(`Xóa ${u}?`))return;const r=await fetch(`/api/users/${u}`,{method:'DELETE'}).then(r=>r.json());toast(r.msg,r.ok?'ok':'err');if(r.ok)loadUsers()}
+async function deleteUser(u){if(!confirm(`Xóa ${u}?`))return;const r=await fetch(`/api/users/${u}`,{credentials:'include',method:'DELETE'}).then(r=>r.json());toast(r.msg,r.ok?'ok':'err');if(r.ok)loadUsers()}
 async function changePassword(){
-  const r=await fetch('/api/users/change-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({old_password:document.getElementById('old-pw').value,new_password:document.getElementById('new-pw').value})}).then(r=>r.json());
+  const r=await fetch('/api/users/change-password',{credentials:'include',method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({old_password:document.getElementById('old-pw').value,new_password:document.getElementById('new-pw').value})}).then(r=>r.json());
   toast(r.msg,r.ok?'ok':'err');if(r.ok){document.getElementById('old-pw').value='';document.getElementById('new-pw').value=''}
 }
 
 // ===== CONFIG =====
-async function loadConfig(){const cfg=await fetch('/api/config').then(r=>r.json());document.getElementById('cfg-prefix').value=cfg.prefix||'/';document.getElementById('cfg-admins').value=(cfg.admins||[]).join(', ')}
-async function saveConfig(){const r=await fetch('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefix:document.getElementById('cfg-prefix').value.trim(),admins:document.getElementById('cfg-admins').value.trim()})}).then(r=>r.json());toast(r.msg,r.ok?'ok':'err')}
+async function loadConfig(){const cfg=await fetch('/api/config',{credentials:'include'}).then(r=>r.json());document.getElementById('cfg-prefix').value=cfg.prefix||'/';document.getElementById('cfg-admins').value=(cfg.admins||[]).join(', ')}
+async function saveConfig(){const r=await fetch('/api/config',{credentials:'include',method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefix:document.getElementById('cfg-prefix').value.trim(),admins:document.getElementById('cfg-admins').value.trim()})}).then(r=>r.json());toast(r.msg,r.ok?'ok':'err')}
 
 
 // ===== MOBILE =====
