@@ -608,9 +608,10 @@ async function doLogin(){
   if(!user||!pass){err.textContent='Vui lòng nhập đủ thông tin.';return}
   btn.disabled=true;btn.textContent='Đang đăng nhập...';err.textContent='';
   try{
-    const r=await fetch('/api/auth/login',{credentials:'include',method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,password:pass})}).then(r=>r.json());
-    if(r.ok){ME=r;showApp()}else err.textContent=r.msg||'Sai thông tin.';
-  }catch(e){err.textContent='Lỗi kết nối server.'}
+    const resp=await fetch('/api/auth/login',{credentials:'include',method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:user,password:pass})});
+    const r=await resp.json();
+    if(r.ok){err.textContent='';ME=r;showApp()}else err.textContent=r.msg||'Sai thông tin.';
+  }catch(e){err.textContent='Lỗi kết nối server: '+e.message;console.error('doLogin error:',e)}
   btn.disabled=false;btn.textContent='Đăng Nhập';
 }
 async function doLogout(){
