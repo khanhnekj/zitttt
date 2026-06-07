@@ -321,7 +321,21 @@ def stop_bot(acc_id):
 # Flask
 # ---------------------------------------------------------------------------
 app = Flask(__name__, static_folder="web/static")
-app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(32))
+
+# SECRET_KEY phải cố định để session không bị mất sau khi restart.
+# Đặt biến môi trường SECRET_KEY trong Render dashboard.
+# Nếu chưa đặt, tạm dùng key ngẫu nhiên (session sẽ mất sau restart).
+_secret = os.environ.get("SECRET_KEY")
+if not _secret:
+    log("web", "CẢNH BÁO: Chưa đặt SECRET_KEY! Session sẽ mất sau restart. Hãy đặt biến môi trường SECRET_KEY trong Render.", "warn")
+    _secret = secrets.token_hex(32)
+app.secret_key = _secret
+
+# Cấu hình session cookie để hoạt động đúng trên Render (HTTPS)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+# Nếu deploy trên HTTPS (Render mặc định), bật Secure để tránh mất cookie
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("RENDER", "") != ""
 
 @app.route("/")
 def index(): return send_from_directory("web", "index.html")
